@@ -2,6 +2,7 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import HTMLResponse
 import cv2
 import numpy as np
+import os
 
 app = FastAPI()
 
@@ -20,10 +21,11 @@ async def create_files(
     files: list[bytes] = File(description="Multiple files as bytes"),
 ):
     for file in files:
-        cv2.imwrite("download.jpg",bts_to_img(file))
-        #print("formato da matrix")
-        #print(bts_to_img(file).shape)
-    return {"file_sizes": [len(file) for file in files]}
+        cv2.imwrite("api/images/download.jpg",bts_to_img(file))
+    os.system("python3 Framework.py --path api/images/  --single_folder True")
+    f = open("api/images/download.txt","r")
+    response = f.read()
+    return {response}
 
 
 @app.get("/")
