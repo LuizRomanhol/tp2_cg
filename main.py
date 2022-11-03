@@ -1,40 +1,75 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import HTMLResponse
-import cv2
-import numpy as np
+import shutil #salvar arq no disco
+from typing import List #lista de imagens
 import os
+from fastapi import FastAPI, UploadFile, File
+
+from fastapi.responses import HTMLResponse #pagina
 
 app = FastAPI()
+#receber id img
+#retornar csv final
 
+@app.post("/obras/")
+async def upload_images(files: List[UploadFile] = File(...)):
+    #remover pasta com dados anteriores
+    shutil.rmtree('api/img/')
+    #criar a pasta api/img/
+    mypath = 'api/img/'
+    if not os.path.isdir(mypath):
+        os.makedirs(mypath)
 
-def bts_to_img(bts):
-    '''
-    :param bts: results from image_to_bts
-    '''
-    buff = np.fromstring(bts, np.uint8)
-    buff = buff.reshape(1, -1)
-    img = cv2.imdecode(buff, cv2.IMREAD_COLOR)
-    return img
-    
-@app.post("/files/")
-async def create_files(
-    files: list[bytes] = File(description="Multiple files as bytes"),
-):
     for file in files:
-        cv2.imwrite("api/images/download.jpg",bts_to_img(file))
-    os.system("python3 Framework.py --path api/images/  --single_folder True")
-    f = open("api/images/download.txt","r")
+        #salvar imagens na pasta "img/"
+        with open(f'api/img/{file.filename}', "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer) 
+
+    #rodar o modelo nas imgs baixadas
+    os.system("python3 Framework.py --path api/img/  --single_folder True")
+    
+    #retornar arquivo csv
+    f = open("api/img/predictions.csv","r")
     response = f.read()
     return {response}
+    #return {"filename": "DEU"}
 
+@app.post("/pavimento/")
+async def upload_images(files: List[UploadFile] = File(...)):
+    #remover pasta com dados anteriores
+    shutil.rmtree('api/img_pavimento/')
+    #criar a pasta api/img/
+    mypath = 'api/img_pavimento/'
+    if not os.path.isdir(mypath):
+        os.makedirs(mypath)
 
+    for file in files:
+        #salvar imagens na pasta "img/"
+        with open(f'api/img_pavimento/{file.filename}', "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer) 
+
+    #rodar o modelo nas imgs baixadas
+    os.system("python3 pavimentacao/mpmg_prediction.py --path api/img_pavimento")
+
+    #f = open("api/img_pavimento/predictions.csv","r")
+    #response = f.read()
+    #return {response}
+    return {"filename": "DEU"}
+
+#chama o post
 @app.get("/")
 async def main():
+    #os h1 são provisorios
     content = """
 <body>
-<form action="/files/" enctype="multipart/form-data" method="post">
-<input name="files" type="file" multiple>
-<input type="submit">
+<h2>.</h2>
+<h1>obras</h1>
+<form action="/obras/" enctype="multipart/form-data" method="post">
+    <input name="files" type="file" multiple>
+    <input type="submit">
+</form>
+<h1>pavimentação</h1>
+<form action="/pavimento/" enctype="multipart/form-data" method="post">
+    <input name="files" type="file" multiple>
+    <input type="submit">
 </form>
 </body>
     """
