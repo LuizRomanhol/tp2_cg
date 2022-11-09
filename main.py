@@ -10,49 +10,53 @@ app = FastAPI()
 #retornar csv final
 
 @app.post("/obras/")
-async def upload_images(files: List[UploadFile] = File(...)):
+async def upload_images(files: List[UploadFile] = File(...),id=0):
     #criar a pasta api/img/
-    mypath = 'api/img/'
+    mypath = 'api/img_obras_'+str(id)+'/'
     if not os.path.isdir(mypath):
-        os.makedirs(mypath)
+        os.mkdir(mypath)
 
     #salvar imagens na pasta "img/"
     for file in files:
-        with open(f'api/img/{file.filename}', "wb") as buffer:
+        with open(mypath + file.filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer) 
 
     #rodar o modelo nas imgs baixadas
-    os.system("python3 Framework.py --path api/img/  --single_folder True")
+    os.system("python3 Framework.py --path " + mypath + "  --single_folder True")
     #retornar arquivo csv
-    f = open("api/img/predictions.csv","r")
+    f = open(mypath + "predictions.csv","r")
     response = f.read()
-    f1 = open("api/img/predictions_final.csv","r")
+    f1 = open(mypath + "predictions_final.csv","r")
     response1 = f1.read()
 
     #remover pasta com dados anteriores
-    shutil.rmtree('api/img/')
+    shutil.rmtree(mypath)
 
     return {response1},{response}
 
-@app.post("/pavimento/")
-async def upload_images(files: List[UploadFile] = File(...)):
+@app.post("/pavimentacao/")
+async def upload_images(files: List[UploadFile] = File(...),id=0):
     #criar a pasta api/img/
-    mypath = 'api/img_pavimento/'
+    print(os.listdir())
+    os.chdir("pavimentacao")
+    
+    mypath = 'api/img_pavimentacao_' + str(id) + '/'
+    
     if not os.path.isdir(mypath):
-        os.makedirs(mypath)
+        os.mkdir(mypath)
 
     for file in files:
         #salvar imagens na pasta "img/"
-        with open(f'api/img_pavimento/{file.filename}', "wb") as buffer:
+        with open(mypath + file.filename, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer) 
 
     #rodar o modelo nas imgs baixadas
-    os.system("python3 pavimentacao/mpmg_prediction.py --path api/img_pavimento")
-    f = open("api/img_pavimento/predictions.csv","r")
+    os.system("python3 mpmg_prediction.py --path " + mypath)
+    f = open("classification_list.csv","r")
     response = f.read()
     
     #remover pasta com dados anteriores
-    shutil.rmtree('api/img_pavimento/')
+    shutil.rmtree(mypath)
     return {response}
 
 #chama o post
@@ -68,7 +72,7 @@ async def main():
     <input type="submit">
 </form>
 <h1>pavimentação</h1>
-<form action="/pavimento/" enctype="multipart/form-data" method="post">
+<form action="/pavimentacao/" enctype="multipart/form-data" method="post">
     <input name="files" type="file" multiple>
     <input type="submit">
 </form>
